@@ -10,7 +10,7 @@ public class Main {
 
         testUpsertItems();
         testRemoveItems();
-        testGetTotalPrice();
+        setItemQuantity();
 
         printSuiteSummary();
     }
@@ -259,9 +259,126 @@ public class Main {
         );
     }
 
-    private static void testGetTotalPrice() {
-        printSection("getTotalPrice");
-        System.out.println("No executable getTotalPrice tests added yet.");
+    private static void setItemQuantity() {
+        printSection("setItemQuantity");
+        /**
+         * Test case
+         * - if the itemId null or blank, throw IllegalArgumentException with message "Item id cannot be null or blank"
+         * - if the quantity is negative, throw IllegalArgumentException with message "Quantity cannot be
+         * - if itemId not found from cart, no change
+         * - if itemId found from cart, update the item quantity to input quantity and the totalPrice should update accordingly
+         * - if itemId found from cart, and the input quantity is 0, the item should be removed and totalPrice should be updated accordingly
+         * - if itemId found from cart, and the input quantity is the same as existing quantity, the price should also remain same as well as the quantity.
+         */
+
+        runTest(
+                "Validation: null item id should be rejected",
+                "Covers: null itemId should throw IllegalArgumentException with the expected message.",
+                () -> {
+                    Cart cart = new Cart();
+
+                    IllegalArgumentException exception = assertThrows(
+                            "null item id should be rejected",
+                            IllegalArgumentException.class,
+                            () -> cart.setItemQuantity(null, 1)
+                    );
+                    assertEquals("null item id message should match", "Item id cannot be null or blank", exception.getMessage());
+                }
+        );
+
+        runTest(
+                "Validation: blank item id should be rejected",
+                "Covers: blank itemId should throw IllegalArgumentException with the expected message.",
+                () -> {
+                    Cart cart = new Cart();
+
+                    IllegalArgumentException exception = assertThrows(
+                            "blank item id should be rejected",
+                            IllegalArgumentException.class,
+                            () -> cart.setItemQuantity("   ", 1)
+                    );
+                    assertEquals("blank item id message should match", "Item id cannot be null or blank", exception.getMessage());
+                }
+        );
+
+        runTest(
+                "Validation: negative quantity should be rejected",
+                "Covers: negative quantity should throw IllegalArgumentException with the expected message.",
+                () -> {
+                    Cart cart = new Cart();
+
+                    IllegalArgumentException exception = assertThrows(
+                            "negative set quantity should be rejected",
+                            IllegalArgumentException.class,
+                            () -> cart.setItemQuantity("sku-set-1", -1)
+                    );
+                    assertEquals("negative set quantity message should match", "Quantity cannot be negative", exception.getMessage());
+                }
+        );
+
+        runTest(
+                "Behavior: missing item id should do nothing",
+                "Covers: if item id is not found from cart, setItemQuantity should not change total price.",
+                () -> {
+                    Cart cart = new Cart();
+                    Item existing = new Item("sku-set-2", "Keyboard", 100.00, 2);
+
+                    cart.upsertItems(new ItemCount(existing, 2));
+                    assertEquals("setup upsert should establish the original total price", 200.00, cart.getTotalPrice());
+
+                    cart.setItemQuantity("missing-id", 5);
+
+                    assertEquals("missing item id should not change total price", 200.00, cart.getTotalPrice());
+                }
+        );
+
+        runTest(
+                "Behavior: existing item quantity should update total price when set to a new quantity",
+                "Covers: if item id is found, quantity should update and totalPrice should be recalculated accordingly.",
+                () -> {
+                    Cart cart = new Cart();
+                    Item item = new Item("sku-set-3", "Mouse", 50.00, 2);
+
+                    cart.upsertItems(new ItemCount(item, 2));
+                    assertEquals("setup upsert should establish the original total price", 100.00, cart.getTotalPrice());
+
+                    cart.setItemQuantity("sku-set-3", 5);
+
+                    assertEquals("setItemQuantity should update total price to the new quantity", 250.00, cart.getTotalPrice());
+                }
+        );
+
+        runTest(
+                "Behavior: setting quantity to zero should remove the item and clear its total price contribution",
+                "Covers: if item id is found and quantity is 0, the item should be removed and totalPrice should update accordingly.",
+                () -> {
+                    Cart cart = new Cart();
+                    Item item = new Item("sku-set-4", "Lamp", 15.00, 2);
+
+                    cart.upsertItems(new ItemCount(item, 2));
+                    assertEquals("setup upsert should establish the original total price", 30.00, cart.getTotalPrice());
+
+                    cart.setItemQuantity("sku-set-4", 0);
+
+                    assertEquals("setting quantity to zero should remove the total price contribution", 0.00, cart.getTotalPrice());
+                }
+        );
+
+        runTest(
+                "Behavior: setting quantity to the same existing quantity should keep total price unchanged",
+                "Covers: if item id is found and quantity is unchanged, price and quantity effect should remain the same.",
+                () -> {
+                    Cart cart = new Cart();
+                    Item item = new Item("sku-set-5", "Stand", 40.00, 3);
+
+                    cart.upsertItems(new ItemCount(item, 3));
+                    assertEquals("setup upsert should establish the original total price", 120.00, cart.getTotalPrice());
+
+                    cart.setItemQuantity("sku-set-5", 3);
+
+                    assertEquals("setting the same quantity should keep total price unchanged", 120.00, cart.getTotalPrice());
+                }
+        );
     }
 
     private static void printSuiteHeader(String title) {

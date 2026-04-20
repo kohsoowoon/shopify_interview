@@ -75,6 +75,28 @@ public class Cart {
     }
 
     public void setItemQuantity(String itemId, int quantity) {
+        /**
+         * validate the input itemId and quantity (itemId cannot be null or blank, quantity cannot be negative)
+         * if the item not found or it's found but the quantity is the same as before, return
+         * if the item is found and the prev and new quantity is different:
+         *  > create a new ItemCount with the new quantity
+         *  > calculate the price difference and update the totalPrice (if reduced quantity, totalPrice should decreased, if increased quantity, totpalPrice increased by the price diff)
+         */
+        validateItemIdAndQuantity(itemId, quantity);
+
+        ItemCount existingItems = cart.get(itemId);
+        if (existingItems == null || existingItems.getCount() == quantity) {
+            return;
+        }
+
+        if (quantity == 0) {
+            cart.remove(itemId);
+        } else {
+            cart.put(itemId, new ItemCount(existingItems.getItem(), quantity));
+        }
+
+        int quantityDifference = quantity - existingItems.getCount();
+        totalPrice += existingItems.getItem().price() * quantityDifference;
     }
 
     public double getTotalPrice(){
@@ -91,6 +113,16 @@ public class Cart {
         }
 
         if (items.getCount() < 0) {
+            throw new IllegalArgumentException("Quantity cannot be negative");
+        }
+    }
+
+    private void validateItemIdAndQuantity(String itemId, int quantity) {
+        if (itemId == null || itemId.isBlank()) {
+            throw new IllegalArgumentException("Item id cannot be null or blank");
+        }
+
+        if (quantity < 0) {
             throw new IllegalArgumentException("Quantity cannot be negative");
         }
     }
